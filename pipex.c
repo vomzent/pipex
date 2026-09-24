@@ -6,7 +6,7 @@
 /*   By: vcoevert <vcoevert@student.codam.nl>        +#+                      */
 /*                                                  +#+                       */
 /*   Created: 2026/07/21 10:06:24 by vcoevert     #+#    #+#                  */
-/*   Updated: 2026/09/24 18:52:52 by vcoevert     ########   odam.nl          */
+/*   Updated: 2026/09/24 19:27:33 by vcoevert     ########   odam.nl          */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,6 +20,7 @@
 
 void free_dbptr(char **content);
 void free_trptr(char ***content);
+int	ptrlen(char *content);
 
 char	*find_program_path(char *name, char **envp)
 {
@@ -48,36 +49,52 @@ char	*find_program_path(char *name, char **envp)
 	return (free_dbptr(envp), free(name), (char *)0);
 }
 
-int	generate_children_argv(char **argv, char ***p_argv)
+char	***generate_children_argv(char **argv)
 {
+	char ***ret;
+	char ***p_argv;
+
+	ret = malloc((ptrlen((char *)argv) + 1) * sizeof(void *));
+	p_argv = ret;
 	if (!p_argv)
-		return (-1);
+		return (ret);
 	while (*argv)
 	{
 		*p_argv = ft_split(*argv, ' ');
 		if (!*p_argv)
-			return (-1);
+		{
+			free_trptr(ret);
+			return (0);
+		}
 		argv++;
 		p_argv++;
 	}
 	*p_argv = 0;
-	return (0);
+	return (ret);
 }
 
-int generate_children_path(char **p_path, char ***p_argv, char **envp)
+char **generate_children_path(char ***p_argv, char **envp)
 {
+	char	**ret;
+	char	**p_path;
+
+	ret = malloc((ptrlen((char *)p_argv) + 1) * sizeof(void *));
+	p_path = ret;
 	if (!p_path)
-		return (-1);
+		return (ret);
 	while (*p_argv)
 	{
 		*p_path = find_program_path(**p_argv, envp);
 		if (!*p_path)
-			return (-1);
+		{
+			free_dbptr(ret);
+			return (0);
+		};
 		p_argv++;
 		p_path++;
 	}
 	*p_path = 0;
-	return (0);
+	return (ret);
 }
 
 int	main(int argc, char **argv, char **envp)
@@ -90,12 +107,12 @@ int	main(int argc, char **argv, char **envp)
 	if (argc < 3)
 		return (ft_dprintf(2, "Usage: %s <program> <program>\n", argv[0]), 0);
 	argv++;
-	p_argv = malloc(argc * sizeof(void *));
-	if (generate_children_argv(argv, p_argv))
-		return(free_trptr(p_argv), -1);
-	p_path = malloc(argc * sizeof(void *));
-	if (generate_children_path(p_path, p_argv, envp))
-		return (free_trptr(p_argv), free_dbptr(p_path), ft_dprintf(2, "Malloc fail :("));
+	p_argv = generate_children_argv(argv);
+	if (!p_argv)
+		return(-1);
+	p_path = generate_children_path(p_argv, envp);
+	if (!p_path)
+		return (free_trptr(p_argv), ft_dprintf(2, "Malloc fail :("));
 	pipe_fd = malloc((argc - 1) * sizeof(void *));
 	if (!pipe_fd)
 		return (ft_dprintf(2, "Malloc fail (this leaks)"), -1);
@@ -131,6 +148,18 @@ int	main(int argc, char **argv, char **envp)
 	free_trptr(p_argv);
 	free(pipe_fd);
 	return (0);
+}
+
+int	ptrlen(char *content)
+{
+	int	ret;
+
+	ret = 0;
+	if (!content)
+		return (0);
+	while (*content++)
+		ret++;
+	return (ret);
 }
 
 void free_dbptr(char **content)
