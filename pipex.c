@@ -6,7 +6,7 @@
 /*   By: vcoevert <vcoevert@student.codam.nl>        +#+                      */
 /*                                                  +#+                       */
 /*   Created: 2026/07/21 10:06:24 by vcoevert     #+#    #+#                  */
-/*   Updated: 2026/09/24 19:27:33 by vcoevert     ########   odam.nl          */
+/*   Updated: 2026/09/24 20:30:28 by vcoevert     ########   odam.nl          */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -103,47 +103,71 @@ int	main(int argc, char **argv, char **envp)
 	char	**p_path;
 	char	***p_argv;
 	int		*pipe_fd;
+	int		i;
+	int		j;
 
 	if (argc < 3)
 		return (ft_dprintf(2, "Usage: %s <program> <program>\n", argv[0]), 0);
 	argv++;
+	i = 0;
 	p_argv = generate_children_argv(argv);
 	if (!p_argv)
 		return(-1);
 	p_path = generate_children_path(p_argv, envp);
 	if (!p_path)
 		return (free_trptr(p_argv), ft_dprintf(2, "Malloc fail :("));
-	pipe_fd = malloc((argc - 1) * sizeof(void *));
+	pipe_fd = malloc((argc - 2) * sizeof(int) * 2);
 	if (!pipe_fd)
 		return (ft_dprintf(2, "Malloc fail (this leaks)"), -1);
-	if (pipe(pipe_fd) == -1)
-		return (perror("Pipe error (this also leaks)"), -1);
-	pid = fork();
-	if (pid == -1)
-		return (perror("Error duplicating"), -1);
-	if (pid == 0)
+	while (i < argc - 2)
+		if (pipe(&pipe_fd[i++ * 2]) == -1)
+			return (perror("Pipe error (this also leaks)"), -1);
+	i = 0;
+	while (i < argc - 1)
 	{
-		close(pipe_fd[0]);
-		dup2(pipe_fd[1], 1);
-		close(pipe_fd[1]);
-		execve(p_path[0], p_argv[0], envp);
-		return (perror("Error transitioning child"), -1);
+		pid = fork();
+		if (pid == -1)
+			return (perror("Error duplicating"), -1);
+		if (pid == 0)
+		{
+			if (i != argc - 1)
+			{
+				close(pipe_fd[i * 2]); //close read end of this pipe
+				dup2(pipe_fd[i * 2 + 1], 1); 
+				close(pipe_fd[i * 2 + 1]);
+			}
+			if (i != 0)
+			{
+				close(pipe_fd[i * 2 - 2 + 1]);
+				dup2(pipe_fd[i * 2 - 2], 0);
+				close(pipe_fd[i * 2 - 2]);
+			}
+			j = 0;
+			while (j < argc - 2)
+			{
+				if ((i == 0 || j != i - 1) && (i == argc - 1 || j != i))
+				{
+					close(pipe_fd[i * 2]);
+					close(pipe_fd[i * 2 + 1]);
+				}
+				j++;
+			}
+			execve(p_path[i], p_argv[i], envp);
+			perror("Error transitioning child");
+			return (-1);
+		}
+		i++;
 	}
-	pid = fork();
-	if (pid == -1)
-		return (perror("Error creating child"), -1);
-	if (pid == 0)
+	i = 0;
+	while (i < argc -2)
 	{
-		close(pipe_fd[1]);
-		dup2(pipe_fd[0], 0);
-		close(pipe_fd[0]);
-		execve(p_path[1], p_argv[1], envp);
-		return (perror("Error transitioning child"), -1);
+		close(pipe_fd[i*2]);
+		close(pipe_fd[i*2+1]);
+		i++;
 	}
-	close(pipe_fd[0]);
-	close(pipe_fd[1]);
-	wait(0);
-	wait(0);
+	i = 0;
+	while (i++ < argc - 1)
+		wait(0);
 	free_dbptr(p_path);
 	free_trptr(p_argv);
 	free(pipe_fd);
