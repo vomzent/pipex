@@ -6,24 +6,22 @@
 /*   By: vcoevert <vcoevert@student.codam.nl>        +#+                      */
 /*                                                  +#+                       */
 /*   Created: 2026/07/26 12:18:20 by vcoevert     #+#    #+#                  */
-/*   Updated: 2026/07/27 11:21:40 by vcoevert     ########   odam.nl          */
+/*   Updated: 2026/09/28 15:49:32 by vcoevert     ########   odam.nl          */
 /*                                                                            */
 /* ************************************************************************** */
 
 #ifndef PIPEX_H
 # define PIPEX_H
+# include <sys/types.h>
+# include <unistd.h>
 
-typdef struct s_program
+typedef struct s_program
 {
-	char	*p_name;
-	char	**p_args;
+	pid_t	pid;
+	char	*name;
+	char	**args;
+	int		in_fd;
+	int		out_fd;
 }			t_program;
-
-typdef struct s_pipex
-{
-	char	*infile;
-	t_list	*programs;
-	char	*outfile;
-}
 
 #endif

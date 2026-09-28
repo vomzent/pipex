@@ -6,7 +6,7 @@
 /*   By: vcoevert <vcoevert@student.codam.nl>        +#+                      */
 /*                                                  +#+                       */
 /*   Created: 2026/07/21 10:06:24 by vcoevert     #+#    #+#                  */
-/*   Updated: 2026/09/28 11:47:57 by vcoevert     ########   odam.nl          */
+/*   Updated: 2026/09/28 16:45:43 by vcoevert     ########   odam.nl          */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -17,10 +17,12 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include "pipex.h"
 
 void free_dbptr(char **content);
-void free_trptr(char ***content);
+// void free_trptr(char ***content);
 int	ptrlen(char **content);
+void	cleanup_program(t_program *programs, int **pipes);
 
 char	*find_program_path(char *name, char **envp)
 {
@@ -38,150 +40,193 @@ char	*find_program_path(char *name, char **envp)
 	}
 	envp = ft_split(*envp + 5, ':');
 	path = envp;
-	while(*path)
+	while(envp && *path)
 	{
 		ret = ft_strjoin(*path, name);
-		if (!access(ret, X_OK))
+		if (!ret || !access(ret, X_OK))
 			return (free_dbptr(envp), free(name), ret);
 		free(ret);
 		path++;
 	}
+	ft_dprintf(2, "Program not found ;(");
 	return (free_dbptr(envp), free(name), (char *)0);
 }
 
-char	***generate_children_argv(char **argv)
+int	generate_children_argv(char **argv, t_program *programs)
 {
-	char ***ret;
-	char ***p_argv;
+	int i;
 
-	ret = malloc((ptrlen(argv) + 1) * sizeof(void *));
-	p_argv = ret;
-	if (!p_argv)
-		return (ret);
-	while (*argv)
+	i = 0;
+	while (i < ptrlen(argv) - 1)
 	{
-		*p_argv = ft_split(*argv, ' ');
-		if (!*p_argv)
+		programs[i].args = ft_split(argv[i + 1], ' ');
+		if (!programs[i].args)
+			return (ft_dprintf(2, "Malloc fail"), -1);
+		i++;
+	}
+	return (0);
+}
+
+// char **generate_children_path(char ***p_argv, char **envp)
+// {
+// 	char	**ret;
+// 	char	**p_path;
+//
+// 	ret = malloc((ptrlen((char **)p_argv) + 1) * sizeof(void *));
+// 	p_path = ret;
+// 	if (!p_path)
+// 		return (ret);
+// 	while (*p_argv)
+// 	{
+// 		*p_path = find_program_path(**p_argv, envp);
+// 		if (!*p_path)
+// 		{
+// 			free_dbptr(ret);
+// 			return (0);
+// 		};
+// 		p_argv++;
+// 		p_path++;
+// 	}
+// 	*p_path = 0;
+// 	return (ret);
+// }
+
+int	**create_pipes(int amount)
+{
+	int	**ret;
+	int	i;
+
+	ret = calloc(amount + 1, sizeof(int *));
+	if (!ret)
+		return (ret);
+	i = 0;
+	while (i < amount)
+	{
+		ret[i] = malloc(sizeof(int) * 2);
+		if (!ret[i] || pipe(ret[i]) == -1)
 		{
-			free_trptr(ret);
+			free_dbptr((char **)ret);
+			ft_dprintf(2, "Malloc fail");
 			return (0);
 		}
-		argv++;
-		p_argv++;
+		i++;
 	}
-	*p_argv = 0;
 	return (ret);
 }
 
-char **generate_children_path(char ***p_argv, char **envp)
+void asssign_pipes(t_program *programs, int **pipes)
 {
-	char	**ret;
-	char	**p_path;
+	int	i;
+	int pipelen;
 
-	ret = malloc((ptrlen((char **)p_argv) + 1) * sizeof(void *));
-	p_path = ret;
-	if (!p_path)
-		return (ret);
-	while (*p_argv)
+	i = 0;
+	pipelen = ptrlen((char **)pipes);
+	while (i < pipelen)
 	{
-		*p_path = find_program_path(**p_argv, envp);
-		if (!*p_path)
-		{
-			free_dbptr(ret);
-			return (0);
-		};
-		p_argv++;
-		p_path++;
+		programs[i].out_fd = pipes[i][1];
+		programs[i + 1].in_fd = pipes[i][0];
+		i++;
 	}
-	*p_path = 0;
-	return (ret);
+}
+
+void close_pipes(int **pipes)
+{
+	int i;
+	int	pipelen;
+
+	i = 0;
+	pipelen = ptrlen((char **)pipes);
+	while (i < pipelen)
+	{
+		close(pipes[i][0]);
+		close(pipes[i][1]);
+		i++;
+	}
+}	
+
+void run_programs(t_program *programs, int **pipes, char **envp)
+{
+	while(programs->args)
+	{
+		programs->pid = fork();
+		if (programs->pid == -1)
+		{
+			perror("Error making child");
+			return ;
+		}
+		if (programs->pid == 0)
+		{
+			if (programs->out_fd != 1)
+				dup2(programs->out_fd, 1);
+			if (programs->in_fd != 0)
+				dup2(programs->in_fd, 0);
+			close_pipes(pipes);
+			programs->name = find_program_path(programs->args[0], envp);
+			if (!programs->name)
+				break;
+			execve(programs->name, programs->args, envp);
+			perror("error transitioning child");
+			return ;
+		}
+		programs++;
+	}
+}
+
+void await_programs(t_program *programs)
+{
+	while (programs->args)
+	{
+		wait(&programs->pid);
+		programs++;
+	}
 }
 
 int	main(int argc, char **argv, char **envp)
 {
-	pid_t 	pid;
-	char	**p_path;
-	char	***p_argv;
-	int		**pipe_fd;
-	int		i;
-	int		j;
+	t_program	*programs;
+	int			**pipes;
 
 	if (argc < 3)
 		return (ft_dprintf(2, "Usage: %s <program> <program>\n", argv[0]), 0);
-	argv++;
-	i = 0;
-	p_argv = generate_children_argv(argv);
-	if (!p_argv)
-		return(-1);
-	p_path = generate_children_path(p_argv, envp);
-	if (!p_path)
-		return (free_trptr(p_argv), ft_dprintf(2, "Malloc fail :("));
-	pipe_fd = malloc((argc - 1) * sizeof(int *));
-	if (!pipe_fd)
-		return (ft_dprintf(2, "Malloc fail (this leaks)"), -1);
-	while (i < argc - 2)
-	{
-		pipe_fd[i] = malloc(sizeof(int) * 2 );
-		if (!pipe_fd[i] || pipe(pipe_fd[i]) == -1)
-			return (perror("Pipe error (this also leaks)"), -1);
-		i++;
-	}
-	pipe_fd[i] = 0;
-	i = 0;
-	while (i < argc - 1)
-	{
-		pid = fork();
-		if (pid == -1)
-			return (perror("Error duplicating"), -1);
-		if (pid == 0)
-		{
-			if (i != argc - 2)
-			{
-				close(pipe_fd[i][0]); //close read end of this pipe
-				dup2(pipe_fd[i][1], 1); 
-				close(pipe_fd[i][1]);
-			}
-			if (i != 0)
-			{
-				close(pipe_fd[i - 1][1]);
-				dup2(pipe_fd[i - 1][0], 0);
-				close(pipe_fd[i - 1][0]);
-			}
-			j = 0;
-			while (j < argc - 2)
-			{
-				if ((i == 0 || j != i - 1) && (i == argc - 1 || j != i))
-				{
-					close(pipe_fd[j][0]);
-					close(pipe_fd[j][1]);
-				}
-				j++;
-			}
-			execve(p_path[i], p_argv[i], envp);
-			perror("Error transitioning child");
-			return (-1);
-		}
-		i++;
-	}
-	i = 0;
-	while (i < (argc - 2))
-	{
-		close(pipe_fd[i][0]);
-		close(pipe_fd[i][1]);
-		i++;
-	}
-	i = 0;
-	while (i++ < argc - 1)
-		wait(0);
-	free_dbptr(p_path);
-	free_trptr(p_argv);
-	free_dbptr((char **)pipe_fd);
+	programs = calloc(argc, sizeof(t_program));
+	pipes = create_pipes(argc - 2);
+	if (!programs || !pipes)
+		return (cleanup_program(programs, pipes), -1);
+	if (generate_children_argv(argv, programs))
+		return (cleanup_program(programs, pipes), -1);
+	asssign_pipes(programs, pipes);
+	programs[0].in_fd = 0;
+	programs[argc - 1].out_fd = 1;
+	run_programs(programs, pipes, envp);
+	close_pipes(pipes);
+	await_programs(programs);
+	cleanup_program(programs, pipes);
 	return (0);
+}
+
+void cleanup_program(t_program *programs, int **pipes)
+{
+	t_program *head;
+
+	head = programs;
+	while (head && head->args)
+	{
+		if (head->pid > 0)
+			wait(&head->pid);
+		if (head->name)
+			free(head->name);
+		if (head->args)
+			free_dbptr(head->args);
+		head++;
+	}
+	if (programs)
+		free(programs);
+	free_dbptr((char **)pipes);
 }
 
 int	ptrlen(char **content)
 {
-	int	ret;
+	int		ret;
 
 	ret = 0;
 	if (!content)
@@ -206,17 +251,17 @@ void free_dbptr(char **content)
 	free(content);
 }
 
-void free_trptr(char ***content)
-{
-	char ***head;
-
-	if (!content)
-		return ;
-	head = content;
-	while (*head)
-	{
-		free_dbptr(*head);
-		head++;
-	}
-	free(content);
-}
+// void free_trptr(char ***content)
+// {
+// 	char ***head;
+//
+// 	if (!content)
+// 		return ;
+// 	head = content;
+// 	while (*head)
+// 	{
+// 		free_dbptr(*head);
+// 		head++;
+// 	}
+// 	free(content);
+// }
