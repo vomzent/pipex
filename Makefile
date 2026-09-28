@@ -1,9 +1,12 @@
-CC = clang
+CC = cc
 CFLAGS = -Wall -Wextra -Werror
 NAME = pipex
 DEBUG = d_pipex
 LIB = Libft/libft.a
-SRC = pipex.c
+SRC = pipex.c \
+      pipe_helpers.c \
+      children_helpers.c \
+      program_helpers.c
 OBJ = ${SRC:.c=.o}
 
 all: $(NAME)
