@@ -6,7 +6,7 @@
 /*   By: vcoevert <vcoevert@student.codam.nl>        +#+                      */
 /*                                                  +#+                       */
 /*   Created: 2026/07/21 10:06:24 by vcoevert     #+#    #+#                  */
-/*   Updated: 2026/09/24 20:30:28 by vcoevert     ########   odam.nl          */
+/*   Updated: 2026/09/28 11:47:57 by vcoevert     ########   odam.nl          */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -20,7 +20,7 @@
 
 void free_dbptr(char **content);
 void free_trptr(char ***content);
-int	ptrlen(char *content);
+int	ptrlen(char **content);
 
 char	*find_program_path(char *name, char **envp)
 {
@@ -54,7 +54,7 @@ char	***generate_children_argv(char **argv)
 	char ***ret;
 	char ***p_argv;
 
-	ret = malloc((ptrlen((char *)argv) + 1) * sizeof(void *));
+	ret = malloc((ptrlen(argv) + 1) * sizeof(void *));
 	p_argv = ret;
 	if (!p_argv)
 		return (ret);
@@ -78,7 +78,7 @@ char **generate_children_path(char ***p_argv, char **envp)
 	char	**ret;
 	char	**p_path;
 
-	ret = malloc((ptrlen((char *)p_argv) + 1) * sizeof(void *));
+	ret = malloc((ptrlen((char **)p_argv) + 1) * sizeof(void *));
 	p_path = ret;
 	if (!p_path)
 		return (ret);
@@ -102,7 +102,7 @@ int	main(int argc, char **argv, char **envp)
 	pid_t 	pid;
 	char	**p_path;
 	char	***p_argv;
-	int		*pipe_fd;
+	int		**pipe_fd;
 	int		i;
 	int		j;
 
@@ -116,12 +116,17 @@ int	main(int argc, char **argv, char **envp)
 	p_path = generate_children_path(p_argv, envp);
 	if (!p_path)
 		return (free_trptr(p_argv), ft_dprintf(2, "Malloc fail :("));
-	pipe_fd = malloc((argc - 2) * sizeof(int) * 2);
+	pipe_fd = malloc((argc - 1) * sizeof(int *));
 	if (!pipe_fd)
 		return (ft_dprintf(2, "Malloc fail (this leaks)"), -1);
 	while (i < argc - 2)
-		if (pipe(&pipe_fd[i++ * 2]) == -1)
+	{
+		pipe_fd[i] = malloc(sizeof(int) * 2 );
+		if (!pipe_fd[i] || pipe(pipe_fd[i]) == -1)
 			return (perror("Pipe error (this also leaks)"), -1);
+		i++;
+	}
+	pipe_fd[i] = 0;
 	i = 0;
 	while (i < argc - 1)
 	{
@@ -130,25 +135,25 @@ int	main(int argc, char **argv, char **envp)
 			return (perror("Error duplicating"), -1);
 		if (pid == 0)
 		{
-			if (i != argc - 1)
+			if (i != argc - 2)
 			{
-				close(pipe_fd[i * 2]); //close read end of this pipe
-				dup2(pipe_fd[i * 2 + 1], 1); 
-				close(pipe_fd[i * 2 + 1]);
+				close(pipe_fd[i][0]); //close read end of this pipe
+				dup2(pipe_fd[i][1], 1); 
+				close(pipe_fd[i][1]);
 			}
 			if (i != 0)
 			{
-				close(pipe_fd[i * 2 - 2 + 1]);
-				dup2(pipe_fd[i * 2 - 2], 0);
-				close(pipe_fd[i * 2 - 2]);
+				close(pipe_fd[i - 1][1]);
+				dup2(pipe_fd[i - 1][0], 0);
+				close(pipe_fd[i - 1][0]);
 			}
 			j = 0;
 			while (j < argc - 2)
 			{
 				if ((i == 0 || j != i - 1) && (i == argc - 1 || j != i))
 				{
-					close(pipe_fd[i * 2]);
-					close(pipe_fd[i * 2 + 1]);
+					close(pipe_fd[j][0]);
+					close(pipe_fd[j][1]);
 				}
 				j++;
 			}
@@ -159,10 +164,10 @@ int	main(int argc, char **argv, char **envp)
 		i++;
 	}
 	i = 0;
-	while (i < argc -2)
+	while (i < (argc - 2))
 	{
-		close(pipe_fd[i*2]);
-		close(pipe_fd[i*2+1]);
+		close(pipe_fd[i][0]);
+		close(pipe_fd[i][1]);
 		i++;
 	}
 	i = 0;
@@ -170,11 +175,11 @@ int	main(int argc, char **argv, char **envp)
 		wait(0);
 	free_dbptr(p_path);
 	free_trptr(p_argv);
-	free(pipe_fd);
+	free_dbptr((char **)pipe_fd);
 	return (0);
 }
 
-int	ptrlen(char *content)
+int	ptrlen(char **content)
 {
 	int	ret;
 
