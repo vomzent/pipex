@@ -6,7 +6,7 @@
 /*   By: vcoevert <vcoevert@student.codam.nl>        +#+                      */
 /*                                                  +#+                       */
 /*   Created: 2026/09/28 18:02:38 by vcoevert     #+#    #+#                  */
-/*   Updated: 2026/09/28 18:28:41 by vcoevert     ########   odam.nl          */
+/*   Updated: 2026/09/28 19:58:36 by vcoevert     ########   odam.nl          */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -46,7 +46,8 @@ int	generate_children_argv(char **argv, t_program *programs)
 	int i;
 
 	i = 0;
-	while (i < ptrlen(argv) - 1)
+	argv++;
+	while (i < ptrlen(argv) - 2)
 	{
 		programs[i].args = ft_split(argv[i + 1], ' ');
 		if (!programs[i].args)

@@ -6,7 +6,7 @@
 /*   By: vcoevert <vcoevert@student.codam.nl>        +#+                      */
 /*                                                  +#+                       */
 /*   Created: 2026/07/26 12:18:20 by vcoevert     #+#    #+#                  */
-/*   Updated: 2026/09/28 18:35:59 by vcoevert     ########   odam.nl          */
+/*   Updated: 2026/09/28 18:55:35 by vcoevert     ########   odam.nl          */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,9 +14,11 @@
 # define PIPEX_H
 # include <sys/types.h>
 # include <sys/wait.h>
+# include <sys/stat.h>
 # include <unistd.h>
 # include <stdlib.h>
 # include <stdio.h>
+# include <fcntl.h>
 
 typedef struct s_program
 {
