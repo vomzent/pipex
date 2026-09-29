@@ -8,8 +8,17 @@ This program should at a certain point behave exactly the same as this shell com
 ```
 The arrow file1 makes file1 the stdin of cmd1, cmd1 stdout gets piped to cmd2 stdin and cmd2 stdout gets put in file2
 
-fork() returns 0 to the child and the process indentifier of the child to the parent.
+### Description
+First compile the program using the ```make``` command<br>
+Then run the program using the following structure:
+```Shell
+./pipex infile <program> <program> outfile
+```
+More programs can be given as parameters, but this program requires at least two.
 
 ### Recources
-https://linuxvox.com/blog/almost-perfect-c-shell-piping/
-fork man page
+My peers!!! Including but not limited to:<br>
+mgroos<br>
+
+https://linuxvox.com/blog/almost-perfect-c-shell-piping/<br>
+The man pages for fork(2), open(2), pipe(2), wait(2) and access(2)
