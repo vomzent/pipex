@@ -6,7 +6,7 @@
 /*   By: vcoevert <vcoevert@student.codam.nl>        +#+                      */
 /*                                                  +#+                       */
 /*   Created: 2026/09/28 18:02:38 by vcoevert     #+#    #+#                  */
-/*   Updated: 2026/09/28 19:58:36 by vcoevert     ########   odam.nl          */
+/*   Updated: 2026/09/29 11:37:04 by vcoevert     ########   odam.nl          */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -24,12 +24,12 @@ char	*find_program_path(char *name, char **envp)
 	while (*envp)
 	{
 		if (!ft_strncmp(*envp, "PATH=", 5))
-			break;
+			break ;
 		envp++;
 	}
 	envp = ft_split(*envp + 5, ':');
 	path = envp;
-	while(envp && *path)
+	while (envp && *path)
 	{
 		ret = ft_strjoin(*path, name);
 		if (!ret || !access(ret, X_OK))
@@ -43,7 +43,7 @@ char	*find_program_path(char *name, char **envp)
 
 int	generate_children_argv(char **argv, t_program *programs)
 {
-	int i;
+	int	i;
 
 	i = 0;
 	argv++;
@@ -57,9 +57,9 @@ int	generate_children_argv(char **argv, t_program *programs)
 	return (0);
 }
 
- void run_programs(t_program *programs, int **pipes, char **envp)
+void	run_programs(t_program *programs, int **pipes, char **envp)
 {
-	while(programs->args)
+	while (programs->args)
 	{
 		programs->pid = fork();
 		if (programs->pid == -1)
@@ -76,7 +76,7 @@ int	generate_children_argv(char **argv, t_program *programs)
 			close_pipes(pipes);
 			programs->name = find_program_path(programs->args[0], envp);
 			if (!programs->name)
-				break;
+				break ;
 			execve(programs->name, programs->args, envp);
 			perror("error transitioning child");
 			return ;
@@ -85,7 +85,7 @@ int	generate_children_argv(char **argv, t_program *programs)
 	}
 }
 
-void await_programs(t_program *programs)
+void	await_programs(t_program *programs)
 {
 	while (programs->args)
 	{

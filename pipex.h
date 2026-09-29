@@ -6,7 +6,7 @@
 /*   By: vcoevert <vcoevert@student.codam.nl>        +#+                      */
 /*                                                  +#+                       */
 /*   Created: 2026/07/26 12:18:20 by vcoevert     #+#    #+#                  */
-/*   Updated: 2026/09/28 18:55:35 by vcoevert     ########   odam.nl          */
+/*   Updated: 2026/09/29 11:34:38 by vcoevert     ########   odam.nl          */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -34,7 +34,7 @@ void	assign_pipes(t_program *program, int **pipes);
 void	close_pipes(int **pipes);
 
 char	*find_program_path(char *name, char **envp);
-int		generate_children_argv(char **argv, t_program * programs);
+int		generate_children_argv(char **argv, t_program *programs);
 void	run_programs(t_program *programs, int **pipes, char **envp);
 void	await_programs(t_program *programs);
 

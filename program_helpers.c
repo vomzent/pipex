@@ -6,16 +6,16 @@
 /*   By: vcoevert <vcoevert@student.codam.nl>        +#+                      */
 /*                                                  +#+                       */
 /*   Created: 2026/09/28 18:04:26 by vcoevert     #+#    #+#                  */
-/*   Updated: 2026/09/28 18:28:21 by vcoevert     ########   odam.nl          */
+/*   Updated: 2026/09/29 11:47:19 by vcoevert     ########   odam.nl          */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Libft/libft.h"
 #include "pipex.h"
 
-void cleanup_program(t_program *programs, int **pipes)
+void	cleanup_program(t_program *programs, int **pipes)
 {
-	t_program *head;
+	t_program	*head;
 
 	head = programs;
 	while (head && head->args)
@@ -45,14 +45,14 @@ int	ptrlen(char **content)
 	return (ret);
 }
 
-void free_dbptr(char **content)
+void	free_dbptr(char **content)
 {
-	char **head;
+	char	**head;
 
 	if (!content)
 		return ;
 	head = content;
-	while(*head)
+	while (*head)
 	{
 		free(*head);
 		head++;

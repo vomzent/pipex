@@ -6,7 +6,7 @@
 /*   By: vcoevert <vcoevert@student.codam.nl>        +#+                      */
 /*                                                  +#+                       */
 /*   Created: 2026/09/28 17:58:56 by vcoevert     #+#    #+#                  */
-/*   Updated: 2026/09/28 18:29:10 by vcoevert     ########   odam.nl          */
+/*   Updated: 2026/09/29 11:46:20 by vcoevert     ########   odam.nl          */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -36,10 +36,10 @@ int	**create_pipes(int amount)
 	return (ret);
 }
 
-void assign_pipes(t_program *programs, int **pipes)
+void	assign_pipes(t_program *programs, int **pipes)
 {
 	int	i;
-	int pipelen;
+	int	pipelen;
 
 	i = 0;
 	pipelen = ptrlen((char **)pipes);
@@ -51,9 +51,9 @@ void assign_pipes(t_program *programs, int **pipes)
 	}
 }
 
-void close_pipes(int **pipes)
+void	close_pipes(int **pipes)
 {
-	int i;
+	int	i;
 	int	pipelen;
 
 	i = 0;
